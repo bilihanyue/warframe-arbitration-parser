@@ -262,7 +262,10 @@
             font-weight: bold;
         }
         
-        .results { display: none; }
+        .results { 
+            display: none; 
+            scroll-margin-top: 40px; /* 滚动到结果时，顶部留出40px呼吸空间 */
+        }
         
         .mission-card {
             background: white;
@@ -380,7 +383,6 @@
             font-weight: bold;
         }
         
-        /* 结果区时间选择器样式 */
         .result-time-selector {
             background: #f0f4f8;
             border-radius: 12px;
@@ -439,7 +441,6 @@
             display: block;
         }
         
-        /* 展开/折叠按钮样式 */
         .toggle-details-btn {
             width: 100%;
             padding: 12px;
@@ -476,7 +477,6 @@
             transform: rotate(180deg);
         }
         
-        /* ========== 核心修正1：移除高度限制，解决轮次显示不全问题 ========== */
         .phases-container {
             max-height: 0;
             overflow: hidden;
@@ -486,12 +486,11 @@
         }
         
         .phases-container.expanded {
-            max-height: 99999px; /* 原来是2000px，现在改为极大值 */
+            max-height: 99999px;
             opacity: 1;
             margin-top: 15px;
-            overflow: visible; /* 确保内容不被截断 */
+            overflow: visible;
         }
-        /* ================================================================= */
         
         .phases-table {
             width: 100%;
@@ -612,14 +611,13 @@
 
     <script>
         let selectedFile = null;
-        let parsedMissionsData = []; // 存储解析后的原始数据
-        let currentBuffs = {}; // 存储当前的buff配置
+        let parsedMissionsData = [];
+        let currentBuffs = {};
         
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
         
-        // 复制路径功能（改为复制文件夹路径）
         async function copyPath() {
             const pathText = document.getElementById('pathText').textContent;
             
@@ -647,13 +645,25 @@
         
         function showCopySuccess() {
             const successDiv = document.getElementById('copySuccess');
+            successDiv.textContent = '路径已复制到剪贴板！';
+            successDiv.style.background = '#4caf50';
             successDiv.style.display = 'block';
             setTimeout(() => {
                 successDiv.style.display = 'none';
             }, 2000);
         }
         
-        // 常量配置
+        function showParseComplete() {
+            const successDiv = document.getElementById('copySuccess');
+            successDiv.textContent = '解析完成！已滚动到结果区域 ↓';
+            successDiv.style.background = '#764ba2';
+            successDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+        
         const BASE_DRONE_DROP_RATE = 0.06;
         const BUFF_MULTIPLIERS = {
             "drop_chance": 2.0,
@@ -664,7 +674,6 @@
         const ROUND_EXPECTATION = 1.21;
         const RATING_THRESHOLDS = [[800, "S"], [700, "A+"], [600, "A"], [500, "A-"]];
         
-        // 正则表达式
         const RE_TIME_PREFIX = /^!?(\d+(?:\.\d+)?)\s+/;
         const RE_START_MISSION_NAME = /Script \[Info\]: ThemedSquadOverlay\.lua: Cached mission name=(.+?)\s*-\s*仲裁\s*\(([A-Za-z0-9_]+)\)/;
         const RE_START_MISSION_VOTE = /Script \[Info\]: ThemedSquadOverlay\.lua: ShowMissionVote\s+(.+?)\s*\(([A-Za-z0-9_]+)_EliteAlert\)/;
@@ -681,20 +690,14 @@
         const RE_INTERCEPTION_NEW_ROUND = /Script \[Info\]: HudRedux\.lua: Queuing new transmission: InterNewRoundLotusTransmission\b/;
         const RE_DEFENSE_REWARD_TRANSITION_OUT = /Script \[Info\]: DefenseReward\.lua: DefenseReward::TransitionOut\b/;
         
-        // 敌人生成统计正则
         const RE_AGENT_PATH = /AI \[Info\]: OnAgentCreated\s+(\S+)/;
         const RE_FRIENDLY_PATH = /\/Lotus\/Types\/(?:Friendly|Player|Sentinels)\/|\/Npc\/Friendly\//;
         
-        // 文件选择事件
         fileInput.addEventListener('change', (e) => {
-            // 修复：只有真正选择了文件才更新，防止取消选择时清空
-            if (e.target.files && e.target.files.length > 0) {
-                selectedFile = e.target.files[0];
-                updateFileDisplay();
-            }
+            selectedFile = e.target.files[0];
+            updateFileDisplay();
         });
         
-        // 拖拽事件
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
@@ -707,11 +710,8 @@
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            // 修复：检查是否有实际文件被拖入
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                selectedFile = e.dataTransfer.files[0];
-                updateFileDisplay();
-            }
+            selectedFile = e.dataTransfer.files[0];
+            updateFileDisplay();
         });
         
         function updateFileDisplay() {
@@ -757,11 +757,7 @@
             return `${seconds.toFixed(1)}秒`;
         }
         
-        // 根据时间模式计算显示数据
         function calculateMissionWithTimeMode(m, timeMode, customMinutes) {
-            
-            
-            // 根据模式选择时长
             let total_sec = null;
             let duration_label = '';
             
@@ -770,8 +766,6 @@
                     total_sec = m.eom_duration_sec || m.state_duration_sec || m.duration_sec;
                     duration_label = '主机时间';
                     break;
-                    
-                
                     
                 case 'custom':
                     if (customMinutes > 0) {
@@ -784,7 +778,6 @@
                     break;
             }
             
-            // 计算期望值
             const drone_expectation = calculateDroneExpectation(m.shield_drone_count, currentBuffs);
             let round_expectation = 0;
             if (m.round_count) {
@@ -792,7 +785,6 @@
             }
             const total_expectation = drone_expectation + round_expectation;
             
-            // 计算每分钟数据
             let shield_drone_per_min = 0;
             let expectation_1h = 0;
             let rating = '?';
@@ -816,7 +808,6 @@
             };
         }
         
-        // 实时切换时间模式
         function switchTimeMode(missionIndex, timeMode) {
             const customInput = document.getElementById(`custom-${missionIndex}`);
             if (timeMode === 'custom') {
@@ -825,17 +816,14 @@
                 customInput.classList.remove('show');
             }
             
-            // 更新按钮样式
             document.querySelectorAll(`[data-mission="${missionIndex}"]`).forEach(btn => {
                 btn.classList.remove('active');
             });
             document.getElementById(`btn-${missionIndex}-${timeMode}`).classList.add('active');
             
-            // 重新计算并刷新显示
             refreshMissionDisplay(missionIndex);
         }
         
-        // 自定义时间变化时刷新
         function onCustomTimeChange(missionIndex) {
             const customMinutes = parseFloat(document.getElementById(`custom-min-${missionIndex}`).value) || 0;
             if (customMinutes > 0) {
@@ -843,7 +831,6 @@
             }
         }
         
-        // 刷新单个任务的显示
         function refreshMissionDisplay(missionIndex) {
             const m = parsedMissionsData[missionIndex];
             const timeMode = document.querySelector(`input[name="timeMode-${missionIndex}"]:checked`).value;
@@ -851,7 +838,6 @@
             
             const calculated = calculateMissionWithTimeMode(m, timeMode, customMinutes);
             
-            // 更新统计数字
             document.getElementById(`duration-${missionIndex}`).textContent = formatDuration(calculated.used_duration);
             document.getElementById(`duration-label-${missionIndex}`).textContent = calculated.duration_label;
             document.getElementById(`dpm-${missionIndex}`).textContent = calculated.shield_drone_per_min.toFixed(2);
@@ -859,24 +845,20 @@
             document.getElementById(`e1h-${missionIndex}`).textContent = calculated.expectation_1h.toFixed(1);
             document.getElementById(`rating-${missionIndex}`).textContent = calculated.rating;
             
-            // 更新评级颜色
             const ratingEl = document.getElementById(`rating-box-${missionIndex}`);
             ratingEl.className = `rating rating-${calculated.rating}`;
         }
         
-        // 切换详细波次表格显示
         function togglePhases(missionIndex) {
             const container = document.getElementById(`phases-container-${missionIndex}`);
             const btn = document.getElementById(`toggle-btn-${missionIndex}`);
             const phaseType = parsedMissionsData[missionIndex].mission_kind === 'defense' ? '波次' : '轮次';
             
             if (container.classList.contains('expanded')) {
-                // 收起
                 container.classList.remove('expanded');
                 btn.classList.remove('expanded');
                 btn.innerHTML = `查看${phaseType}详细 <span class="toggle-icon">▼</span>`;
             } else {
-                // 展开
                 container.classList.add('expanded');
                 btn.classList.add('expanded');
                 btn.innerHTML = `收起详细 <span class="toggle-icon">▲</span>`;
@@ -898,13 +880,10 @@
             progressContainer.style.display = 'block';
             results.style.display = 'none';
             
-            // ========== 核心修正2：确保count正确解析，移除上限限制 ==========
             const countInput = document.getElementById('count').value;
             const count = parseInt(countInput) || 2;
             const minDuration = parseFloat(document.getElementById('minDuration').value) || 60;
-            // ================================================================
             
-            // 保存buff配置
             currentBuffs = {
                 "drop_chance": document.getElementById('dropChance').checked,
                 "prosperity": document.getElementById('prosperity').checked,
@@ -934,7 +913,6 @@
                     const mStartVote = line.match(RE_START_MISSION_VOTE);
                     
                     if (mStartName || mStartVote) {
-                        // ========== 修正：确保正确结算前一个任务 ==========
                         if (cur && cur.state_started_line !== undefined) {
                             const prevMission = finalizeMission(cur, minDuration);
                             if (prevMission) {
@@ -942,7 +920,6 @@
                                 if (prevMission.status === 'ok') validTotal++;
                             }
                         }
-                        // =================================================
                         
                         const isVote = !!mStartVote;
                         cur = {
@@ -1022,22 +999,24 @@
                         if (RE_INTERCEPTION_NEW_ROUND.test(line)) {
                             cur.mission_kind = 'interception';
                             cur.phase_kind = 'round';
-                            cur.inter_completed_rounds = (cur.inter_completed_rounds || 0) + 1;
-                            cur.round_count = cur.inter_completed_rounds;
                             
-                            if (cur.inter_completed_rounds === 1 && cur.pending_drones_before_first_round_marker > 0) {
-                                if (cur.phases.length < 1) cur.phases.push(0);
-                                cur.phases[0] += cur.pending_drones_before_first_round_marker;
-                                cur.pending_drones_before_first_round_marker = 0;
+                            if (!cur.cur_phase_index) {
+                                cur.cur_phase_index = 1;
+                                
+                                if (cur.pending_drones_before_first_round_marker > 0) {
+                                    if (cur.phases.length < 1) cur.phases.push(0);
+                                    cur.phases[0] += cur.pending_drones_before_first_round_marker;
+                                    cur.pending_drones_before_first_round_marker = 0;
+                                }
                             }
-                            cur.cur_phase_index = cur.inter_completed_rounds + 1;
-                        } else if (RE_DEFENSE_REWARD_TRANSITION_OUT.test(line)) {
+                        } 
+                        else if (RE_DEFENSE_REWARD_TRANSITION_OUT.test(line)) {
                             if (cur.mission_kind !== 'defense') {
                                 cur.mission_kind = 'interception';
                                 cur.phase_kind = 'round';
                                 cur.inter_completed_rounds = (cur.inter_completed_rounds || 0) + 1;
                                 cur.round_count = cur.inter_completed_rounds;
-                                cur.cur_phase_index = cur.inter_completed_rounds + 1;
+                                cur.cur_phase_index = (cur.cur_phase_index || 1) + 1;
                             }
                         }
                     }
@@ -1065,7 +1044,6 @@
                         const sm = line.match(RE_SPAWNED);
                         if (sm) cur.last_spawned = parseInt(sm[1]);
                         
-                        // 敌人生成统计
                         const agentMatch = line.match(RE_AGENT_PATH);
                         if (agentMatch) {
                             const path = agentMatch[1];
@@ -1076,7 +1054,6 @@
                     }
                 }
                 
-                // ========== 修正：确保最后一个任务被正确结算 ==========
                 if (cur && cur.state_started_line !== undefined) {
                     const lastMission = finalizeMission(cur, minDuration);
                     if (lastMission) {
@@ -1084,34 +1061,34 @@
                         if (lastMission.status === 'ok') validTotal++;
                     }
                 }
-                // ===================================================
                 
-                // 保存原始数据（根据用户设置的数量切片）
                 parsedMissionsData = missions.slice(-count);
-                
-                // 显示结果（传递总数和实际显示数）
                 displayResults(parsedMissionsData, validTotal, count);
                 
+                // 自动滚动到结果区域，让用户知道解析已完成
+                setTimeout(() => {
+                    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+                
+                // 显示完成提示
+                showParseComplete();
+                
+                // 临时修改按钮文字提示用户
+                btn.textContent = '解析完成！请向下查看结果 ↓';
+                
             } catch (err) {
-                console.error('解析错误详情:', err);
-                let errorMsg = '解析出错了: ' + err.message;
-
-                // 特定错误类型的友好提示
-                if (err.message.includes('could not be read') || err.message.includes('permission')) {
-                    errorMsg = '文件读取权限失效！\n\n可能原因：\n1. 浏览器出于安全考虑回收了文件权限\n2. 文件被其他程序占用或修改\n3. 文件被移动或删除\n\n解决方法：请重新选择文件（无需刷新页面）';
-                    // 清空失效引用
-                    selectedFile = null;
-                    document.getElementById('fileName').textContent = '';
-                }
-
-                alert(errorMsg);
+                console.error(err);
+                alert('解析出错了: ' + err.message);
             } finally {
                 btn.disabled = false;
                 progressContainer.style.display = 'none';
+                // 3秒后恢复按钮文字
+                setTimeout(() => {
+                    btn.textContent = '开始解析';
+                }, 3000);
             }
         }
         
-        // ========== 核心修正：提取finalizeMission为纯函数，正确返回任务对象 ==========
         function finalizeMission(cur, minDuration) {
             let duration_sec = null;
             if (cur.start_time && cur.end_time) duration_sec = cur.end_time - cur.start_time;
@@ -1133,7 +1110,11 @@
                 if (!wave_count) wave_count = cur.phases.length;
                 round_count = wave_count ? Math.ceil(wave_count / 3) : null;
             } else if (cur.mission_kind === 'interception') {
-                if (!round_count && cur.phases) round_count = cur.phases.length;
+                if (cur.phases && cur.phases.length > 0) {
+                    round_count = cur.phases.length;
+                } else {
+                    round_count = cur.inter_completed_rounds || 0;
+                }
                 wave_count = round_count;
             }
             
@@ -1141,11 +1122,10 @@
             const actual_duration = eom_duration_sec || state_duration_sec || duration_sec;
             const is_valid = actual_duration && actual_duration >= minDuration;
             
-            // 只有有效且已开始的任务才返回
             if (!is_valid || !has_started) return null;
             
             return {
-                index: 0, // 会在push后重新设置
+                index: 0,
                 node_id: cur.node_id,
                 mission_name: cur.mission_name,
                 mission_kind: cur.mission_kind || 'unknown',
@@ -1170,19 +1150,16 @@
                 status: cur.end_line ? 'ok' : 'incomplete',
             };
         }
-        // ====================================================================
         
         function displayResults(missions, validTotal, requestedCount) {
             const results = document.getElementById('results');
             let html = '';
             
-            // 显示找到的任务数和实际显示数
             const showingCount = missions.length;
-            const totalValid = validTotal;
             
             html += `<div style="margin-bottom: 20px; color: #666; text-align: center;">
-                找到 <strong style="color: #764ba2; font-size: 1.2em;">${totalValid}</strong> 个有效任务
-                ${showingCount < totalValid ? `，显示最近 <strong>${showingCount}</strong> 个（设置显示 ${requestedCount} 个）` : `（显示全部 ${totalValid} 个）`}
+                找到 <strong style="color: #764ba2; font-size: 1.2em;">${validTotal}</strong> 个有效任务
+                ${showingCount < validTotal ? `，显示最近 <strong>${showingCount}</strong> 个（设置显示 ${requestedCount} 个）` : `（显示全部 ${validTotal} 个）`}
             </div>`;
             
             if (missions.length === 0) {
@@ -1190,6 +1167,10 @@
             } else {
                 missions.forEach((m, idx) => {
                     const displayName = m.mission_name || '未知任务';
+                    const missionTypeText = m.mission_kind === 'defense' ? '防御' : 
+                                           m.mission_kind === 'interception' ? '拦截' : '未知';
+                    const missionTypeColor = m.mission_kind === 'defense' ? '#ff6b6b' : 
+                                            m.mission_kind === 'interception' ? '#764ba2' : '#999';
                     const phaseType = m.mission_kind === 'defense' ? '波次' : '轮次';
                     
                     html += `
@@ -1202,14 +1183,16 @@
                                         ${m.status === 'ok' ? '已完成' : '未完成'}
                                     </span>
                                 </div>
-                                <div class="node-name">${displayName}</div>
+                                <div class="node-name">
+                                    ${displayName}
+                                    <span style="background: ${missionTypeColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; margin-left: 8px; font-weight: bold;">${missionTypeText}</span>
+                                </div>
                             </div>
                             <div class="rating rating-?" id="rating-box-${idx}">
                                 <span id="rating-${idx}">?</span>
                             </div>
                         </div>
                         
-                        <!-- 大数字统计：无人机与敌人 -->
                         <div class="big-stat-grid">
                             <div class="big-stat-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                                 <div class="big-stat-label">护盾无人机</div>
@@ -1221,7 +1204,6 @@
                             </div>
                         </div>
                         
-                        <!-- 时间模式选择器（解析后显示） -->
                         <div class="result-time-selector">
                             <h4>时间计算方式（点击切换实时重新计算）</h4>
                             <div class="time-mode-group">
@@ -1269,12 +1251,10 @@
                         </div>
                         
                         ${m.phases && m.phases.length > 0 ? `
-                            <!-- 展开/折叠按钮 -->
                             <button class="toggle-details-btn" id="toggle-btn-${idx}" onclick="togglePhases(${idx})">
                                 查看${phaseType}详细 <span class="toggle-icon">▼</span>
                             </button>
                             
-                            <!-- 可折叠的表格容器 -->
                             <div class="phases-container" id="phases-container-${idx}">
                                 <table class="phases-table">
                                     <thead>
@@ -1309,7 +1289,6 @@
             results.innerHTML = html;
             results.style.display = 'block';
             
-            // 初始化显示（使用默认的主机时间）
             missions.forEach((m, idx) => {
                 refreshMissionDisplay(idx);
             });

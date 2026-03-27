@@ -15,6 +15,7 @@
 const BG_IMAGES = [
     // 示例（取消注释并替换为你的文件名）：
     // 'example.jpg',
+    'cirno_bg.jpg'
     // 'warframe-01.jpg',
     // 'warframe-02.png',
 ];

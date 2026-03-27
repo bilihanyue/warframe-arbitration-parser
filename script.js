@@ -86,6 +86,14 @@ async function saveBgToIDB(id, dataUrl, thumbUrl, name) {
     } catch (e) { console.warn('IndexedDB save failed:', e); }
 }
 
+async function deleteBgFromIDB(id) {
+    try {
+        const db = await openIDB();
+        const tx = db.transaction('images', 'readwrite');
+        tx.objectStore('images').delete(id);
+    } catch (e) { console.warn('IndexedDB delete failed:', e); }
+}
+
 async function loadBgsFromIDB() {
     try {
         const db = await openIDB();
@@ -106,6 +114,9 @@ function renderBgThumbs() {
     grid.innerHTML = '';
     grid.appendChild(noneBtn);
     bgImages.forEach(bg => {
+        const wrap = document.createElement('div');
+        wrap.className = 'bg-thumb-wrap';
+
         const btn = document.createElement('button');
         btn.className = 'bg-thumb' + (activeBgId === bg.id ? ' active' : '');
         btn.onclick = () => selectBg(bg.id);
@@ -115,8 +126,31 @@ function renderBgThumbs() {
         img.alt = bg.name || '背景';
         img.loading = 'lazy';
         btn.appendChild(img);
-        grid.appendChild(btn);
+
+        wrap.appendChild(btn);
+
+        // Delete button for user-added images
+        if (bg.type === 'file') {
+            const del = document.createElement('button');
+            del.className = 'bg-thumb-del';
+            del.title = '移除';
+            del.innerHTML = '✕';
+            del.onclick = (e) => {
+                e.stopPropagation();
+                removeBg(bg.id);
+            };
+            wrap.appendChild(del);
+        }
+
+        grid.appendChild(wrap);
     });
+}
+
+async function removeBg(id) {
+    bgImages = bgImages.filter(b => b.id !== id);
+    await deleteBgFromIDB(id);
+    if (activeBgId === id) selectBg(null);
+    renderBgThumbs();
 }
 
 function selectBg(id) {
@@ -131,9 +165,9 @@ function selectBg(id) {
         document.querySelector('.bg-none').classList.add('active');
         overlay.style.backgroundImage = 'none';
     } else {
+        const wraps = document.querySelectorAll('.bg-thumb-wrap');
         const idx = bgImages.findIndex(b => b.id === id);
-        const thumbs = document.querySelectorAll('.bg-thumb');
-        if (thumbs[idx + 1]) thumbs[idx + 1].classList.add('active');
+        if (wraps[idx]) wraps[idx].querySelector('.bg-thumb').classList.add('active');
     }
     localStorage.setItem('arb-parser-bg-id', id || '');
 }

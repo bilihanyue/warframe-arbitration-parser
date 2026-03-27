@@ -484,6 +484,9 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 5px;
 }
+.bg-thumb-wrap {
+    position: relative;
+}
 .bg-thumb {
     aspect-ratio: 1;
     border-radius: 6px;
@@ -512,6 +515,33 @@
     object-fit: cover;
 }
 .bg-none { font-size: 0.9em; }
+.bg-thumb-del {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: var(--danger, #ef5350);
+    color: #fff;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.15s;
+    padding: 0;
+}
+.bg-thumb-wrap:hover .bg-thumb-del {
+    opacity: 1;
+}
+.bg-thumb-del:hover {
+    transform: scale(1.15);
+}
 
 /* ── Opacity controls ── */
 .opacity-control {
